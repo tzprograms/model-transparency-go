@@ -17,6 +17,7 @@
 package cli
 
 import (
+	"crypto/fips140"
 	"fmt"
 	"os"
 	"strings"
@@ -94,6 +95,15 @@ func New() *cobra.Command {
 	// Add sub-commands.
 	cmd.AddCommand(Sign())
 	cmd.AddCommand(Verify())
+	cmd.AddCommand(&cobra.Command{
+		Use:   "fips-status",
+		Short: "Print the Go FIPS mode and module version",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			_, err := fmt.Fprintf(cmd.OutOrStdout(), "enabled=%t version=%s\n", fips140.Enabled(), fips140.Version())
+			return err
+		},
+	})
 	cmd.AddCommand(version.WithFont("starwars"))
 	cmd.AddCommand(cobracompletefig.CreateCompletionSpecCommand())
 	return cmd

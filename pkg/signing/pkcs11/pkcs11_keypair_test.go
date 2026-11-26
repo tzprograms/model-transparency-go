@@ -21,6 +21,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"math/big"
 	"testing"
 
 	"github.com/sigstore/model-signing/pkg/signing"
@@ -178,13 +179,12 @@ func TestGetAlgorithmDetails_UnsupportedECDSACurve(t *testing.T) {
 }
 
 func TestGetAlgorithmDetails_UnsupportedRSASize(t *testing.T) {
-	privKey, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
-		t.Fatalf("Failed to generate key: %v", err)
-	}
+	// Only key-size metadata is inspected; do not generate a non-approved key
+	// when this test runs with GODEBUG=fips140=only.
+	publicKey := &rsa.PublicKey{N: new(big.Int).Lsh(big.NewInt(1), 1023), E: 65537}
 
 	// 1024 bit RSA keys are treated as 2048 (rounded up)
-	_, err = signing.GetPublicKeyDetails(&privKey.PublicKey)
+	_, err := signing.GetPublicKeyDetails(publicKey)
 	if err != nil {
 		t.Errorf("Unexpected error for RSA key: %v", err)
 	}

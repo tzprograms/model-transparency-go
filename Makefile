@@ -44,6 +44,8 @@ help:
 	@echo ""
 	@echo -e "$(COLOR_BOLD)Available targets:$(COLOR_RESET)"
 	@echo -e "  $(COLOR_GREEN)build$(COLOR_RESET)           - Build the binary"
+	@echo -e "  $(COLOR_GREEN)build-fips$(COLOR_RESET)      - Build with the validated Go crypto module"
+	@echo -e "  $(COLOR_GREEN)test-fips$(COLOR_RESET)       - Run strict FIPS unit and CLI tests"
 	@echo -e "  $(COLOR_GREEN)clean$(COLOR_RESET)           - Clean build artifacts and coverage reports"
 	@echo -e "  $(COLOR_GREEN)test$(COLOR_RESET)            - Run all tests"
 	@echo -e "  $(COLOR_GREEN)test-unit$(COLOR_RESET)       - Run unit tests only (faster)"
@@ -335,3 +337,16 @@ mod-verify:
 
 # Default target
 .DEFAULT_GOAL := help
+
+.PHONY: build-fips test-fips
+build-fips: ## Build the CLI with the validated Go cryptographic module.
+	GOFIPS140=v1.0.0 $(MAKE) build
+
+test-fips: ## Run native FIPS unit and CLI integration tests in strict mode.
+	GOFIPS140=v1.0.0 $(MAKE) build-test-binary
+	@test "$$(env -u GODEBUG scripts/tests/$(BINARY_NAME) fips-status)" = "enabled=true version=v1.0.0"
+	@test "$$(GODEBUG=fips140=only scripts/tests/$(BINARY_NAME) fips-status)" = "enabled=true version=v1.0.0"
+	@test "$$(GODEBUG=fips140=off scripts/tests/$(BINARY_NAME) fips-status)" = "enabled=false version=v1.0.0"
+	GOFIPS140=v1.0.0 GODEBUG=fips140=only $(GOTEST) -timeout $(TEST_TIMEOUT) ./...
+	GOFIPS140=v1.0.0 GODEBUG=fips140=only $(GOTEST) -timeout $(TEST_TIMEOUT) -tags=pkcs11,otel ./...
+	GODEBUG=fips140=only ./scripts/tests/testrunner

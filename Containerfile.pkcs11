@@ -29,6 +29,10 @@ ARG BUILD_TAGS=""
 USER 0
 WORKDIR /app
 
+# Select a validated module explicitly for FIPS builds. Normal builds retain
+# upstream Go defaults.
+ARG GOFIPS140=off
+ENV GOFIPS140=${GOFIPS140}
 ENV GOTOOLCHAIN=auto
 
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates gcc libc6-dev && rm -rf /var/lib/apt/lists/*
